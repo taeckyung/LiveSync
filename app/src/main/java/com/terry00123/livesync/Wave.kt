@@ -13,13 +13,14 @@ import java.nio.ByteOrder
  * Functions for reading wave file into short array and playing them (for debugging purpose)
  */
 object Wave{
-    private val HEADER_SIZE = 44
-    private val FORMAT : Short = 1
-    private val CHANNELS : Short = 1
-    private val RATE = 44100
-    private val BITS : Short = 16
-    private val DATA_HEADER = 0x61746164
+    private const val HEADER_SIZE = 44
+    private const val FORMAT : Short = 1
+    private const val CHANNELS : Short = 1
+    private const val RATE = 44100
+    private const val BITS : Short = 16
+    private const val DATA_HEADER = 0x61746164
     /*
+     * Modified the source code below.
      * https://mindtherobot.com/blog/580/android-audio-play-a-wav-file-on-an-audiotrack/
      */
     fun wavToShortArray(wavStream: InputStream) : ShortArray? {
@@ -38,8 +39,10 @@ object Wave{
         buffer.position(buffer.position() + 6)
 
         val bits = buffer.short
-        if (format != FORMAT || channels != CHANNELS || rate != RATE || bits != BITS)
+        if (format != FORMAT || channels != CHANNELS || rate != RATE || bits != BITS) {
+            Log.i("myTag", "Format: $format Channels: $channels Rate: $rate Bits: $bits")
             return null
+        }
 
         // Until "data" header appears
         while (buffer.int != DATA_HEADER) {
@@ -62,6 +65,26 @@ object Wave{
             shortArray[i] = (byteArray[2*i] + (byteArray[2*i+1].toInt() shl 8)).toShort()
         }
         return shortArray
+    }
+
+    fun filterShortArray(arr: ShortArray?) : ShortArray? {
+        if (arr == null) return null
+
+        val array = ShortArray(arr.size)
+
+        array[0] = arr[0]
+        array[1] = arr[1]
+
+        for (i in 2 until arr.size-2) {
+            array[i] = (arr[i-1].toDouble() * 0.25
+                    + arr[i].toDouble() * 0.5
+                    + arr[i+1].toDouble() * 0.25).toShort()
+        }
+
+        array[array.size-2] = arr[array.size-2]
+        array[array.size-1] = arr[array.size-1]
+
+        return array
     }
 
     fun playShortArray(array: ShortArray?) {
