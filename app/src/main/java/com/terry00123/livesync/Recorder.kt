@@ -72,9 +72,17 @@ class Recorder {
     }
 
     private fun recordingThreadBody() {
+        val tempBuffer = ShortArray(bufferSize)
         while (isRecording.get()) {
             when (currentState.get()) {
-                RecorderState.IDLE -> {}
+                RecorderState.IDLE -> {
+                    /*
+                     * We should read data from buffer even if the data is useless
+                     * https://stackoverflow.com/questions/12002031/what-will-happen-when-the-number
+                     * -of-data-which-is-sampled-through-audio-exceed-t/12002230#12002230
+                     */
+                    recorder.read(tempBuffer, 0, bufferSize)
+                }
                 RecorderState.RECORDING -> {
                     if (offset < maxOffset) {
                         recorder.read(micData, offset, bufferSize)
