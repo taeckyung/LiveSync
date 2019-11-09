@@ -52,7 +52,7 @@ object CrossCorrelation {
         if (idx > n - source.size)
             idx -= n
 
-        Log.i("myTag", "Max arg: $idx")
+        Log.i("myTag", "max arg: $idx, max val: ${sortedList[0].value}")
 
         return idx
     }
