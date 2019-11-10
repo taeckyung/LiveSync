@@ -79,6 +79,10 @@ class FFT(internal var n: Int) {
      * as long as this header is included.
      */
     fun fft(x: DoubleArray, y: DoubleArray) {
+        require(n == x.size && n == y.size) {
+            "Input array size should be $n. Currently x: ${x.size} y: ${y.size}"
+        }
+
         var i: Int
         var j: Int
         var k: Int
@@ -149,14 +153,20 @@ class FFT(internal var n: Int) {
 
     //added by Taeckyung LEE
     fun ifft(x: DoubleArray, y: DoubleArray) {
+        require(n == x.size && n == y.size) {
+            "Input array size should be $n. Currently x: ${x.size} y: ${y.size}"
+        }
+
         // Conjugate
-        for (i in y.indices) y[i] = -y[i]
+        for (i in 1 until n) y[i] = -y[i]
 
         this.fft(x, y)
 
         // Conjugate again and normalize
-        for (i in x.indices) x[i] = x[i] / n
-        for (i in y.indices) y[i] = -y[i] / n
+        for (i in 1 until n) {
+            x[i] = x[i] / n
+            y[i] = -y[i] / n
+        }
     }
 
 
