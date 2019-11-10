@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">LiveSync</string>
+    <string name="videoOffset">Offset</string>
+    <string name="videoPlay">Play</string>
+    <string name="videoSync">Synchronize</string>
+    <string name="videoStatistics">Statistics</string>
+    <string name="statisticsLatency">Current audio latency:</string>
+    <string name="statisticsTDoA">Current TDoA:</string>
+    <string name="zero">0</string>
+    <string name="videoOffsetHint">milliseconds</string>
+    <string name="VideoSettings">Settings</string>
 </resources>

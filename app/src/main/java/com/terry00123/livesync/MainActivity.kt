@@ -2,17 +2,22 @@ package com.terry00123.livesync
 
 import android.Manifest
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
+import android.widget.MediaController
+import android.widget.VideoView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
 import kotlin.system.measureTimeMillis
 
 class MainActivity : AppCompatActivity() {
     private val MY_PERMISSIONS_REQUEST_RECORD_AUDIO = 1
     private lateinit var recorder: Recorder
+    private lateinit var videoView: VideoView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +56,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun lateInit() {
         recorder = Recorder()
+        videoView = findViewById(R.id.videoView)
+        val controller = MediaController(this)
+        videoView.setMediaController(controller)
+        videoView.requestFocus()
+        val path = Environment.getDataDirectory().toString() + "/video.mp4"
+        videoView.setVideoPath(path)
+
         synchronize()
     }
 
@@ -98,6 +110,9 @@ class MainActivity : AppCompatActivity() {
                 val d = CrossCorrelation.crossCorrelate(originalArray, recordedArray)
                 val timeInterval = d.toDouble() / 44100.0
                 Log.i("myTag", timeInterval.toString())
+                runOnUiThread {
+                    textTDoA.text = timeInterval.toString()
+                }
             } / 1000.0
             Log.i("myTag", "compareInterval: $time seconds")
         }
