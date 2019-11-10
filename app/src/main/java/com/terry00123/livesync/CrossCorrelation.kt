@@ -1,8 +1,11 @@
 package com.terry00123.livesync
 
 import android.util.Log
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 object CrossCorrelation {
+
     private fun nearestPowerOf2(n: Int): Int {
         var a = 1
         while (a <= n) {
@@ -13,37 +16,33 @@ object CrossCorrelation {
 
     fun crossCorrelate(source: ShortArray, target: ShortArray): Int {
         val n = nearestPowerOf2(source.size + target.size - 1)
-        val sourceComplex = arrayOfNulls<Complex>(n)
-        val targetComplex = arrayOfNulls<Complex>(n)
 
-        for (i in source.indices) {
-            sourceComplex[i] = Complex(source[i].toDouble(), 0.0)
-        }
-        for (i in source.size until n) {
-            sourceComplex[i] = Complex(0.0, 0.0)
-        }
-        for (i in target.indices) {
-            targetComplex[i] = Complex(target[i].toDouble(), 0.0)
-        }
-        for (i in target.size until n) {
-            targetComplex[i] = Complex(0.0, 0.0)
-        }
+        val sourceReal= FFT.shortToDouble(source.copyOf(n))
+        val sourceImag = DoubleArray(n)
 
-        val fftS = FFT.fft(sourceComplex)
-        val fftT = FFT.fft(targetComplex)
+        val targetReal = FFT.shortToDouble(target.copyOf(n))
+        val targetImag = DoubleArray(n)
 
-        for (i in fftS.indices) {
-            fftS[i] = fftS[i].conjugate()
-        }
+        val fft = FFT(n)
 
-        val timeProduct = arrayOfNulls<Complex>(fftS.size)
-        for (i in fftS.indices) {
-            timeProduct[i] = fftS[i].times(fftT[i])
+        fft.fft(sourceReal, sourceImag)
+        fft.fft(targetReal, targetImag)
+
+        // Conjugate
+        for (i in sourceImag.indices)
+            sourceImag[i] = -sourceImag[i]
+
+        val timeProductReal = DoubleArray(n)
+        val timeProductImag = DoubleArray(n)
+
+        for (i in 1 until n) {
+            timeProductReal[i] = sourceReal[i] * targetReal[i] - sourceImag[i] * targetImag[i]
+            timeProductImag[i] = sourceReal[i] * targetImag[i] + sourceImag[i] * targetReal[i]
         }
 
-        val y = FFT.ifft(timeProduct)
+        fft.ifft(timeProductReal, timeProductImag)
 
-        val sortedList = argMax(y)
+        val sortedList = argMax(timeProductReal, timeProductImag)
 
         //Log.i("myTag", sortedList.slice(0..4).toString())
 
@@ -57,12 +56,12 @@ object CrossCorrelation {
         return idx
     }
 
-    private fun argMax(a: Array<Complex>): List<IndexedValue<Double>> {
+    private fun argMax(re: DoubleArray, im: DoubleArray): List<IndexedValue<Double>> {
 
-        val arr = DoubleArray(a.size)
+        val arr = DoubleArray(re.size)
 
-        for (i in a.indices) {
-            arr[i] = a[i].abs()
+        for (i in re.indices) {
+            arr[i] = sqrt(re[i].pow(2.0) + im[i].pow(2.0))
         }
 
         val arrWithIndex = arr.withIndex().sortedWith(compareByDescending{it.value})
