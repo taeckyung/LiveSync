@@ -4,8 +4,8 @@
     <string name="videoPlay">Play</string>
     <string name="videoSync">Synchronize</string>
     <string name="videoStatistics">Statistics</string>
-    <string name="statisticsLatency">Current audio latency:</string>
-    <string name="statisticsTDoA">Current TDoA:</string>
+    <string name="statisticsLatency">Audio latency:</string>
+    <string name="statisticsTDoA">TDoA:</string>
     <string name="zero">0</string>
     <string name="videoOffsetHint">milliseconds</string>
     <string name="VideoSettings">Settings</string>

@@ -16,8 +16,9 @@ import kotlin.system.measureTimeMillis
 
 class MainActivity : AppCompatActivity() {
     private val MY_PERMISSIONS_REQUEST_RECORD_AUDIO = 1
-    private lateinit var recorder: Recorder
-    private lateinit var videoView: VideoView
+    private lateinit var recorder : Recorder
+    private lateinit var speaker : Speaker
+    private lateinit var videoView : VideoView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,23 +57,29 @@ class MainActivity : AppCompatActivity() {
 
     private fun lateInit() {
         recorder = Recorder()
+        speaker = Speaker()
+/*
         videoView = findViewById(R.id.videoView)
         val controller = MediaController(this)
         videoView.setMediaController(controller)
         videoView.requestFocus()
         val path = Environment.getDataDirectory().toString() + "/video.mp4"
         videoView.setVideoPath(path)
+*/
 
-        synchronize()
+        //synchronize()
+        val latency = FindLatency(recorder, speaker).getLatency()
+        Log.i("myTag", "Latency found as $latency")
     }
 
     override fun onDestroy() {
         recorder.release()
+        speaker.release()
         super.onDestroy()
     }
 
     private fun synchronize() {
-        GlobalScope.launch(Dispatchers.Default, CoroutineStart.DEFAULT) {
+        runBlocking {
             coroutineScope {
                 val time = System.currentTimeMillis()
 
@@ -80,7 +87,7 @@ class MainActivity : AppCompatActivity() {
                 var contentArray : ShortArray?
 
                 val recordWait = async {
-                    recorder.getRecordedAudio(10000)
+                    recorder.getRecordedAudio(441000)
                 }
                 val contentWait = async {
                     Wave.wavToShortArray(

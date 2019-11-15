@@ -7,21 +7,23 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 class Recorder {
-    private val sampleRate = 44100
-    private val bufferSize = 512
+    val sampleRate = 44100
+    val bufferSize = 512
     private val bufferSizeInBytes = bufferSize * Short.SIZE_BYTES
 
     private val recorder : AudioRecord
     private val recordingThread : Thread
-    private var isRecording = AtomicBoolean(false)
+    private var isRecording : Boolean
 
     private enum class RecorderState{
-        IDLE, RECORDING
+        IDLE, RECORDING, FINISHED
     }
+
+    /* Variables shared among threads */
+    private val waitObject = Object()
     private var currentState = AtomicReference<RecorderState>(RecorderState.IDLE)
     private var offset = 0
-    private var maxOffset = 0
-    private val waitObject = Object()
+    private var recordedTime = LongArray(0)
     private var micData = ShortArray(0)
 
 
@@ -34,7 +36,7 @@ class Recorder {
             bufferSizeInBytes
         )
         recorder.startRecording()
-        isRecording.set(true)
+        isRecording = true
         recordingThread = Thread {
             kotlin.run {
                 recordingThreadBody()
@@ -44,38 +46,59 @@ class Recorder {
     }
 
     fun release() {
-        if (isRecording.getAndSet(false)) {
+        if (isRecording) {
+            isRecording = false
             recordingThread.join()
             recorder.stop()
             recorder.release()
         }
     }
 
-    fun getRecordedAudio(milliseconds: Int) : ShortArray? {
+    fun getRecordedAudio(bufSize_: Int) : ShortArray {
         return when (currentState.get()) {
-            RecorderState.RECORDING -> null
             RecorderState.IDLE -> {
+                val bufSize = bufSize_ - bufSize_ % bufferSize
+
                 offset = 0
-                maxOffset = milliseconds * sampleRate / 1000
-                maxOffset -= (maxOffset % bufferSize)
-                micData = ShortArray(maxOffset)
+                micData = ShortArray(bufSize)
                 currentState = AtomicReference(RecorderState.RECORDING)
 
                 synchronized(waitObject) {
                     waitObject.wait()
                 }
 
+                currentState = AtomicReference(RecorderState.IDLE)
+
                 micData
             }
-            else -> null
+            else -> throw error("More than two threads are attempting to access recorder.")
         }
+    }
+
+    fun getRecordedAudioWithTime(bufSize_: Int) : Pair<ShortArray, LongArray> {
+        recordedTime = LongArray(bufSize_ / bufferSize)
+        return Pair(getRecordedAudio(bufSize_), recordedTime)
     }
 
     private fun recordingThreadBody() {
         val tempBuffer = ShortArray(bufferSize)
-        while (isRecording.get()) {
+        while (isRecording) {
             when (currentState.get()) {
-                RecorderState.IDLE -> {
+                RecorderState.RECORDING -> {
+                    if (offset < micData.size) {
+                        recorder.read(micData, offset, bufferSize)
+                        recordedTime[offset/bufferSize] = System.currentTimeMillis()
+
+                        offset += bufferSize
+                    }
+                    else {
+                        currentState = AtomicReference(RecorderState.FINISHED)
+                        synchronized(waitObject) {
+                            waitObject.notifyAll()
+                        }
+                    }
+                }
+                else -> { // IDLE or FINISHED
                     /*
                      * We should read data from buffer even if the data is useless
                      * https://stackoverflow.com/questions/12002031/what-will-happen-when-the-number
@@ -83,19 +106,6 @@ class Recorder {
                      */
                     recorder.read(tempBuffer, 0, bufferSize)
                 }
-                RecorderState.RECORDING -> {
-                    if (offset < maxOffset) {
-                        recorder.read(micData, offset, bufferSize)
-                        offset += bufferSize
-                    }
-                    else {
-                        currentState = AtomicReference(RecorderState.IDLE)
-                        synchronized(waitObject) {
-                            waitObject.notifyAll()
-                        }
-                    }
-                }
-                else -> {}
             }
         }
     }
