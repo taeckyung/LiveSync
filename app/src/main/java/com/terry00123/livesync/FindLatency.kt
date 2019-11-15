@@ -7,7 +7,7 @@ import kotlin.math.sin
 
 class FindLatency(private val recorder: Recorder, private val speaker: Speaker) {
     private val freq = 11000
-    private val maxLoop = 5
+    private val maxLoop = 6
     private val maxLatencyInBuffers = 50
     private val threshold = 1.0
 
@@ -33,7 +33,7 @@ class FindLatency(private val recorder: Recorder, private val speaker: Speaker) 
 
                 if (endTime != null) {
                     latencyArray[index] = endTime - startTime
-                    Log.i("myTag", "getLatency: $it-th loop with latency ${latencyArray[index]}")
+                    Log.i("LiveSync_FindLatency", "$it-th loop latency ${latencyArray[index]}")
                     index += 1
                 }
             }
@@ -75,7 +75,7 @@ class FindLatency(private val recorder: Recorder, private val speaker: Speaker) 
     }
 
     private fun generateToneOfFreq(): ShortArray {
-        val bufferSize = recorder.bufferSize * 2
+        val bufferSize = recorder.bufferSize
         val generatedSnd = ShortArray(bufferSize)
 
         for (i in 0 until bufferSize) {

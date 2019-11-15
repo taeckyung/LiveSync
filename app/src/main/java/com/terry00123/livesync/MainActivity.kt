@@ -69,7 +69,11 @@ class MainActivity : AppCompatActivity() {
 
         //synchronize()
         val latency = FindLatency(recorder, speaker).getLatency()
-        Log.i("myTag", "Latency found as $latency")
+        Log.i("LiveSync_MainActivity", "Audio latency: $latency")
+        runOnUiThread {
+            textLatency.text = latency.toString()
+            syncButton.setOnClickListener { synchronize() }
+        }
     }
 
     override fun onDestroy() {
@@ -84,7 +88,7 @@ class MainActivity : AppCompatActivity() {
                 val time = System.currentTimeMillis()
 
                 val recordedArray : ShortArray?
-                var contentArray : ShortArray?
+                val contentArray : ShortArray?
 
                 val recordWait = async {
                     recorder.getRecordedAudio(441000)
@@ -98,10 +102,8 @@ class MainActivity : AppCompatActivity() {
                 recordedArray = recordWait.await()
                 contentArray = contentWait.await()?.sliceArray(441000..882000)
 
-                Log.i("myTag", recordedArray?.size?.toString() ?: "not recorded")
-
                 val elapsedTime = (System.currentTimeMillis() - time) / 1000.0
-                Log.i("myTag", "synchronize: $elapsedTime seconds")
+                Log.i("LiveSync_MainActivity", "synchronize: $elapsedTime seconds")
 
                 compareInterval(contentArray, recordedArray)
             }
@@ -110,18 +112,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun compareInterval(originalArray: ShortArray?, recordedArray: ShortArray?) {
         if (originalArray == null || recordedArray == null) {
-            Log.e("myTag", "Converted array is null!")
+            Log.e("LiveSync_MainActivity", "Converted array is null!")
         }
         else {
             val time = measureTimeMillis {
                 val d = CrossCorrelation.crossCorrelate(originalArray, recordedArray)
                 val timeInterval = d.toDouble() / 44100.0
-                Log.i("myTag", timeInterval.toString())
+                Log.i("LiveSync_MainActivity", timeInterval.toString())
                 runOnUiThread {
                     textTDoA.text = timeInterval.toString()
                 }
             } / 1000.0
-            Log.i("myTag", "compareInterval: $time seconds")
+            Log.i("LiveSync_MainActivity", "compareInterval: $time seconds")
         }
     }
 }

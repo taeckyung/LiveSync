@@ -42,6 +42,7 @@ class Recorder {
                 recordingThreadBody()
             }
         }
+        recordingThread.priority = Thread.MAX_PRIORITY
         recordingThread.start()
     }
 

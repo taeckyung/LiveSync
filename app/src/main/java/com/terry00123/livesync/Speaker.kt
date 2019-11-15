@@ -44,6 +44,7 @@ class Speaker {
                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                     .build())
             .setBufferSizeInBytes(bufferSizeInBytes)
+            .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
 
         player.play()
@@ -54,6 +55,7 @@ class Speaker {
                 playerThreadBody()
             }
         }
+        playerThread.priority = Thread.MAX_PRIORITY
         playerThread.start()
 
     }
@@ -71,7 +73,7 @@ class Speaker {
         var size = shortArray.size - offsetInShorts
         size -= size % bufferSize
         //bufferQueue.add(shortArray.copyOf(size))
-        Log.i("myTag", "Size $size added.")
+        Log.i("LiveSync_Speaker", "Size $size added.")
 
         when (currentState.get()) {
             SpeakerState.IDLE -> {
