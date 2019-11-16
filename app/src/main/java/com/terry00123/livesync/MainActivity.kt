@@ -74,6 +74,11 @@ class MainActivity : AppCompatActivity() {
             textLatency.text = latency.toString()
             syncButton.setOnClickListener { synchronize() }
         }
+        speaker.play(
+            Wave.wavToShortArray(
+                resources.openRawResource(R.raw.mono_recording_0ms)
+            ) ?: ShortArray(0), 0, true)
+        speaker.addToneImmediate(500, 10000)
     }
 
     override fun onDestroy() {

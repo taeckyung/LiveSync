@@ -2,7 +2,6 @@ package com.terry00123.livesync
 
 import android.util.Log
 import kotlinx.coroutines.*
-import kotlin.math.sin
 
 
 class FindLatency(private val recorder: Recorder, private val speaker: Speaker) {
@@ -14,7 +13,7 @@ class FindLatency(private val recorder: Recorder, private val speaker: Speaker) 
     fun getLatency() : Long? {
         return runBlocking {
 
-            val tone = generateToneOfFreq()
+            val tone = Tone.generateFreq(freq, speaker.sampleRate, speaker.bufferSize)
             val latencyArray = LongArray(maxLoop)
 
             var index = 0
@@ -24,7 +23,7 @@ class FindLatency(private val recorder: Recorder, private val speaker: Speaker) 
 
                 val startTime = System.currentTimeMillis()
 
-                val speakerWait = async {speaker.play(tone, 0)}
+                val speakerWait = async {speaker.play(tone, 0, false)}
 
                 val recorderWait = async {getLatencyRecorderBody()}
 
@@ -72,18 +71,6 @@ class FindLatency(private val recorder: Recorder, private val speaker: Speaker) 
             }
         }
         return null
-    }
-
-    private fun generateToneOfFreq(): ShortArray {
-        val bufferSize = recorder.bufferSize
-        val generatedSnd = ShortArray(bufferSize)
-
-        for (i in 0 until bufferSize) {
-            val tmp = sin(2.0 * Math.PI * i.toDouble() / (speaker.sampleRate / freq).toDouble())
-            generatedSnd[i] = (tmp * java.lang.Short.MAX_VALUE).toShort()
-        }
-
-        return generatedSnd
     }
 
 }

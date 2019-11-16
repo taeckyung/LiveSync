@@ -13,7 +13,6 @@ class Recorder {
 
     private val recorder : AudioRecord
     private val recordingThread : Thread
-    private var isRecording : Boolean
 
     private enum class RecorderState{
         IDLE, RECORDING, FINISHED
@@ -36,7 +35,6 @@ class Recorder {
             bufferSizeInBytes
         )
         recorder.startRecording()
-        isRecording = true
         recordingThread = Thread {
             kotlin.run {
                 recordingThreadBody()
@@ -47,32 +45,27 @@ class Recorder {
     }
 
     fun release() {
-        if (isRecording) {
-            isRecording = false
-            recordingThread.join()
-            recorder.stop()
-            recorder.release()
-        }
+        currentState.set(RecorderState.FINISHED)
+        recordingThread.join()
+        recorder.stop()
+        recorder.release()
     }
 
     fun getRecordedAudio(bufSize_: Int) : ShortArray {
-        return when (currentState.get()) {
-            RecorderState.IDLE -> {
-                val bufSize = bufSize_ - bufSize_ % bufferSize
+        return if (currentState.compareAndSet(RecorderState.IDLE, RecorderState.RECORDING)) {
+            val bufSize = bufSize_ - bufSize_ % bufferSize
 
-                offset = 0
-                micData = ShortArray(bufSize)
-                currentState = AtomicReference(RecorderState.RECORDING)
+            offset = 0
+            micData = ShortArray(bufSize)
 
-                synchronized(waitObject) {
-                    waitObject.wait()
-                }
-
-                currentState = AtomicReference(RecorderState.IDLE)
-
-                micData
+            synchronized(waitObject) {
+                waitObject.wait()
             }
-            else -> throw error("More than two threads are attempting to access recorder.")
+
+            micData
+        }
+        else {
+            throw error("More than two threads are attempting to access recorder.")
         }
     }
 
@@ -82,9 +75,13 @@ class Recorder {
     }
 
     private fun recordingThreadBody() {
+        var finished = false
         val tempBuffer = ShortArray(bufferSize)
-        while (isRecording) {
+        while (!finished) {
             when (currentState.get()) {
+                RecorderState.FINISHED -> {
+                    finished = true
+                }
                 RecorderState.RECORDING -> {
                     if (offset < micData.size) {
                         recorder.read(micData, offset, bufferSize)
@@ -93,13 +90,13 @@ class Recorder {
                         offset += bufferSize
                     }
                     else {
-                        currentState = AtomicReference(RecorderState.FINISHED)
+                        currentState = AtomicReference(RecorderState.IDLE)
                         synchronized(waitObject) {
                             waitObject.notifyAll()
                         }
                     }
                 }
-                else -> { // IDLE or FINISHED
+                else -> {
                     /*
                      * We should read data from buffer even if the data is useless
                      * https://stackoverflow.com/questions/12002031/what-will-happen-when-the-number

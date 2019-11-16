@@ -1,17 +1,10 @@
 package com.terry00123.livesync
 
-import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioTrack
 import android.util.Log
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-/*
- * Written by Taeckyung LEE.
- * Functions for reading wave file into short array and playing them (for debugging purpose)
- */
 object Wave{
     private const val HEADER_SIZE = 44
     private const val FORMAT : Short = 1
@@ -20,7 +13,7 @@ object Wave{
     private const val BITS : Short = 16
     private const val DATA_HEADER = 0x61746164
     /*
-     * Modified the source code below.
+     * Following function is the modification of the source from:
      * https://mindtherobot.com/blog/580/android-audio-play-a-wav-file-on-an-audiotrack/
      */
     fun wavToShortArray(wavStream: InputStream) : ShortArray? {
@@ -85,36 +78,5 @@ object Wave{
         array[array.size-1] = arr[array.size-1]
 
         return array
-    }
-
-    fun playShortArray(array: ShortArray?) {
-        if (array == null) return
-
-        val player = AudioTrack.Builder()
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build())
-            .setAudioFormat(
-                AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(44100)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build())
-            .setBufferSizeInBytes(512)
-            .build()
-
-        player.play()
-
-        var offset = 0
-
-        while (offset < array.size) {
-            player.write(array, offset, 512)
-            offset += 512
-        }
-
-        player.stop()
-        player.release()
     }
 }
