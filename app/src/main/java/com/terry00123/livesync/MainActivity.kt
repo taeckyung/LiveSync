@@ -70,11 +70,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun lateInit() {
-
-        val recordedArray = Wave.wavToShortArray(resources.openRawResource(R.raw.mono_recording_0ms))?.sliceArray(441000 .. 882000)
-        val contentArray = Wave.wavToShortArray(resources.openRawResource(R.raw.mono_recording_900ms))?.sliceArray(441000 .. 882000)
-        compareInterval(contentArray, recordedArray)
-        /*
         recorder = Recorder(sampleRate, audioInChannel, audioEncoding, bufferSizeInBytes)
         speaker = Speaker(sampleRate, audioOutChannel, audioEncoding, bufferSizeInBytes)
 
@@ -132,7 +127,6 @@ class MainActivity : AppCompatActivity() {
             speaker.play()
             videoView.start()
         }
-        */
     }
 
     override fun onDestroy() {
