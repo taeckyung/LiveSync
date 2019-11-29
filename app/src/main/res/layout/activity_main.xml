@@ -56,7 +56,7 @@
                 android:textSize="18sp" />
 
             <EditText
-                android:id="@+id/editText"
+                android:id="@+id/offsetText"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -65,7 +65,7 @@
                 android:ems="10"
                 android:fontFamily="@font/ubuntu"
                 android:hint="@string/videoOffsetHint"
-                android:inputType="number"
+                android:inputType="numberDecimal"
                 android:padding="5dp"
                 android:singleLine="true"
                 android:text="@string/zero"
@@ -80,18 +80,54 @@
             android:layout_height="2dp"
             android:background="?android:attr/listDivider" />
 
-        <Button
-            android:id="@+id/playButton"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/ubuntu"
-            android:text="@string/videoPlay" />
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/playButton"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@android:color/darker_gray"
+                android:fontFamily="@font/ubuntu"
+                android:padding="5dp"
+                android:text="@string/videoPlay" />
+
+            <Button
+                android:id="@+id/resumeButton"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@android:color/darker_gray"
+                android:fontFamily="@font/ubuntu"
+                android:padding="5dp"
+                android:text="@string/videoResume" />
+
+            <Button
+                android:id="@+id/stopButton"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@android:color/darker_gray"
+                android:fontFamily="@font/ubuntu"
+                android:padding="5dp"
+                android:text="@string/videoStop" />
+
+        </LinearLayout>
 
         <Button
             android:id="@+id/syncButton"
+            style="@style/Widget.AppCompat.Button.Borderless"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@android:color/darker_gray"
             android:fontFamily="@font/ubuntu"
+            android:padding="5dp"
             android:text="@string/videoSync" />
 
         <View

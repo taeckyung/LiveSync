@@ -18,10 +18,10 @@ object CrossCorrelation {
         val n = nearestPowerOf2(source.size + target.size - 1)
 
         val sourceReal= FFT.shortToDouble(source.copyOf(n))
-        val sourceImag = DoubleArray(n)
+        val sourceImag = DoubleArray(n) {0.0}
 
         val targetReal = FFT.shortToDouble(target.copyOf(n))
-        val targetImag = DoubleArray(n)
+        val targetImag = DoubleArray(n) {0.0}
 
         val fft = FFT(n)
 
@@ -35,7 +35,7 @@ object CrossCorrelation {
         val timeProductReal = DoubleArray(n)
         val timeProductImag = DoubleArray(n)
 
-        for (i in 1 until n) {
+        for (i in 0 until n) {
             timeProductReal[i] = sourceReal[i] * targetReal[i] - sourceImag[i] * targetImag[i]
             timeProductImag[i] = sourceReal[i] * targetImag[i] + sourceImag[i] * targetReal[i]
         }
@@ -44,14 +44,14 @@ object CrossCorrelation {
 
         val sortedList = argMax(timeProductReal, timeProductImag)
 
-        //Log.i("myTag", sortedList.slice(0..4).toString())
+        Log.i("LiveSync_CrossCorrelation", sortedList.slice(0..4).toString())
 
         var idx = sortedList[0].index
 
         if (idx > n - source.size)
             idx -= n
 
-        Log.i("myTag", "max arg: $idx, max val: ${sortedList[0].value}")
+        Log.i("LiveSync_CrossCorrelation", "max arg: $idx, max val: ${sortedList[0].value}")
 
         return idx
     }

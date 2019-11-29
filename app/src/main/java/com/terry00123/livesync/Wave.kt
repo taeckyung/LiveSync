@@ -59,7 +59,7 @@ object Wave{
         }
         return shortArray
     }
-
+/*
     fun filterShortArray(arr: ShortArray?) : ShortArray? {
         if (arr == null) return null
 
@@ -79,4 +79,5 @@ object Wave{
 
         return array
     }
+ */
 }

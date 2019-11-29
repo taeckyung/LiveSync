@@ -1,17 +1,23 @@
 package com.terry00123.livesync
 
-import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
-class Recorder {
-    val sampleRate = 44100
-    val bufferSize = 512
-    private val bufferSizeInBytes = bufferSize * Short.SIZE_BYTES
+class Recorder (sampleRate_: Int,
+                audioChannel: Int,
+                audioEncoding: Int,
+                bufferSizeInBytes: Int) {
+    val sampleRate = sampleRate_
+    val bufferSize = bufferSizeInBytes / Short.SIZE_BYTES
 
-    private val recorder : AudioRecord
+    private val recorder = AudioRecord(
+        MediaRecorder.AudioSource.MIC,
+        sampleRate,
+        audioChannel,
+        audioEncoding,
+        bufferSizeInBytes
+    )
     private val recordingThread : Thread
 
     private enum class RecorderState{
@@ -22,18 +28,12 @@ class Recorder {
     private val waitObject = Object()
     private var currentState = AtomicReference<RecorderState>(RecorderState.IDLE)
     private var offset = 0
-    private var recordedTime = LongArray(0)
     private var micData = ShortArray(0)
+    private var recordedTime = LongArray(0)
+    private var timeRecording = false
 
 
     init {
-        recorder = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            sampleRate,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            bufferSizeInBytes
-        )
         recorder.startRecording()
         recordingThread = Thread {
             kotlin.run {
@@ -71,7 +71,10 @@ class Recorder {
 
     fun getRecordedAudioWithTime(bufSize_: Int) : Pair<ShortArray, LongArray> {
         recordedTime = LongArray(bufSize_ / bufferSize)
-        return Pair(getRecordedAudio(bufSize_), recordedTime)
+        timeRecording = true
+        val ret = Pair(getRecordedAudio(bufSize_), recordedTime)
+        timeRecording = false
+        return ret
     }
 
     private fun recordingThreadBody() {
@@ -85,7 +88,8 @@ class Recorder {
                 RecorderState.RECORDING -> {
                     if (offset < micData.size) {
                         recorder.read(micData, offset, bufferSize)
-                        recordedTime[offset/bufferSize] = System.currentTimeMillis()
+                        if (timeRecording)
+                            recordedTime[offset/bufferSize] = System.currentTimeMillis()
 
                         offset += bufferSize
                     }

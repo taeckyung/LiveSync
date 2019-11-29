@@ -4,22 +4,23 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import android.util.Log
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.system.measureTimeMillis
 
-class Speaker {
-    val sampleRate = 44100
-    val bufferSize = 512
-    private val bufferSizeInBytes = bufferSize * Short.SIZE_BYTES
+class Speaker (sampleRate_: Int,
+               audioChannel: Int,
+               audioEncoding: Int,
+               bufferSizeInBytes: Int) {
+    val sampleRate = sampleRate_
+    val bufferSize = bufferSizeInBytes / Short.SIZE_BYTES
 
     private val player : AudioTrack
     private val playerThread : Thread
 
     private val zeroTone : ShortArray = ShortArray(bufferSize) {0}
 
-    private enum class SpeakerState{
+    private enum class SpeakerState {
         IDLE, PLAYING, FINISHED
     }
 
@@ -28,10 +29,10 @@ class Speaker {
     private var currentState = AtomicReference<SpeakerState>(SpeakerState.IDLE)
 
     private var source : ShortArray = ShortArray(bufferSize) {0}
-    private var offset = 0
+    private var offset = AtomicInteger(0)
+    private var muted = false
 
     private val toneList = ArrayList<Pair<ShortArray, Int>>()
-    private var flushed = AtomicBoolean(false)
 
     init {
         player = AudioTrack.Builder()
@@ -42,9 +43,9 @@ class Speaker {
                     .build())
             .setAudioFormat(
                 AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setEncoding(audioEncoding)
                     .setSampleRate(sampleRate)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .setChannelMask(audioChannel)
                     .build())
             .setBufferSizeInBytes(bufferSizeInBytes)
             .setTransferMode(AudioTrack.MODE_STREAM)
@@ -69,30 +70,70 @@ class Speaker {
         player.release()
     }
 
-    fun play(shortArray: ShortArray, offsetInShorts: Short, immediateReturn: Boolean) {
-        var size = shortArray.size - offsetInShorts
-        size -= size % bufferSize
-        Log.i("LiveSync_Speaker", "play: Size $size added.")
+    private fun timeToOffset(msInInt: Int) : Int {
+        return (msInInt.toDouble() * sampleRate / 1000).toInt()
+    }
 
-        if (currentState.compareAndSet(SpeakerState.IDLE, SpeakerState.PLAYING)) {
-            source = shortArray.sliceArray(offsetInShorts until offsetInShorts+size)
+    private fun offsetToTime(offsetInInt: Int) : Int {
+        return (offsetInInt.toDouble() * 1000 / sampleRate).toInt()
+    }
 
-            offset = 0
-            currentState = AtomicReference(SpeakerState.PLAYING)
+    fun setSource(shortArray: ShortArray) {
+        source = shortArray.copyOf()
+        offset.set(0)
+    }
 
-            if (!immediateReturn) {
-                synchronized(waitObject) {
-                    waitObject.wait()
-                }
-            }
-        }
-        else {
-            throw error("More than two threads are attempting to access speaker.")
+    fun setOffset(offsetInInt: Int) {
+        offset.set(offsetInInt)
+    }
+
+    fun setRelativeOffset(offsetInInt: Int) {
+        offset.addAndGet(offsetInInt)
+    }
+
+    fun setTime(msInInt: Int) {
+        setOffset(timeToOffset(msInInt))
+    }
+
+    fun setRelativeTime(msInInt: Int) {
+        setRelativeOffset(timeToOffset(msInInt))
+    }
+
+    fun getOffset() : Int {
+        return offset.get()
+    }
+
+    fun getTime() : Int {
+        return offsetToTime(getOffset())
+    }
+
+    fun playAwait() {
+        currentState.set(SpeakerState.PLAYING)
+
+        synchronized(waitObject) {
+            waitObject.wait()
         }
     }
 
-    fun addToneImmediate(freq: Int, milliseconds: Int) {
-        val tone = Tone.generateFreq(freq, sampleRate, bufferSize)
+    fun play() {
+        currentState.set(SpeakerState.PLAYING)
+    }
+
+    fun stop()  {
+        currentState.set(SpeakerState.IDLE)
+    }
+
+    fun muteOn() {
+        muted = true
+    }
+
+    fun muteOff() {
+        muted = false
+    }
+
+/*
+    fun addToneImmediate(freq: Int, milliseconds: Int, amplitude: Double) {
+        val tone = Tone.generateFreq(freq, sampleRate, bufferSize, amplitude)
         val count = milliseconds * sampleRate / bufferSize / 1000
         toneList.add(Pair(tone, count))
         Log.i("LiveSync_Speaker", "addToneImmediate: tone $freq hz of duration $count added.")
@@ -104,6 +145,7 @@ class Speaker {
             waitObject.wait()
         }
     }
+ */
 
     private fun playerThreadBody() {
         var finished = false
@@ -115,9 +157,16 @@ class Speaker {
                     finished = true
                 }
                 SpeakerState.PLAYING -> {
-                    if (offset < source.size && !flushed.compareAndSet(true, false)) {
-                        array = source.sliceArray(offset until offset+bufferSize)
-                        offset += bufferSize
+                    val offsetNow = offset.get()
+                    val offsetNext = offsetNow + bufferSize
+                    if (offsetNext <= source.size) {
+                        array = if (!muted) {
+                            source.sliceArray(offsetNow until offsetNext)
+                        }
+                        else {
+                            zeroTone.copyOf()
+                        }
+                        offset.compareAndSet(offsetNow, offsetNext)
                     }
                     else {
                         currentState = AtomicReference(SpeakerState.IDLE)

@@ -7,6 +7,8 @@
     <string name="statisticsLatency">Audio latency:</string>
     <string name="statisticsTDoA">TDoA:</string>
     <string name="zero">0</string>
-    <string name="videoOffsetHint">milliseconds</string>
+    <string name="videoOffsetHint">seconds</string>
     <string name="VideoSettings">Settings</string>
+    <string name="videoStop">Stop</string>
+    <string name="videoResume">Resume</string>
 </resources>

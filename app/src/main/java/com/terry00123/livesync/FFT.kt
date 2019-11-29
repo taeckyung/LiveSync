@@ -158,12 +158,12 @@ class FFT(internal var n: Int) {
         }
 
         // Conjugate
-        for (i in 1 until n) y[i] = -y[i]
+        for (i in 0 until n) y[i] = -y[i]
 
         this.fft(x, y)
 
         // Conjugate again and normalize
-        for (i in 1 until n) {
+        for (i in 0 until n) {
             x[i] = x[i] / n
             y[i] = -y[i] / n
         }
