@@ -40,7 +40,7 @@ class Bluetooth {
 
                 if(deviceName != null)
                 {
-                    if(!BLE_DB().contains(deviceHardwareAddress))
+                    if(!BLE_DB().duplicate(deviceHardwareAddress))
                     {
                         val text = "$deviceHardwareAddress $deviceRssi"
                         BLE_DB().append(1, text)
@@ -66,32 +66,6 @@ class Bluetooth {
         }
         val discovery = mBlueToothAdapter.startDiscovery()
         Log.i("Discovery", "$discovery")
-
-    }
-
-    fun find_max_distance(): Double{
-        var max = 0.0
-        if(BLE_DB().DBisEmpty())
-        {
-            return max
-        }
-
-        val RSSI = BLE_DB().get_Rssis()
-
-        for (rssi in RSSI)
-        {
-            val dis = rssiTodis(rssi)
-            if(dis >= max)
-            {
-                max = dis
-            }
-        }
-        if(max >= 50)
-        {
-            max = find_max_distance()
-        }
-
-        return max
     }
 
 

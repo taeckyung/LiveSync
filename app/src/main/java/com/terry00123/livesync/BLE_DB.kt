@@ -11,7 +11,6 @@ class BLE_DB {
     val dirNameFile = File(scanned_name)
 
     fun initialize(){
-
         if (!File(dirPath).exists()) {
             File(dirPath).mkdir()
         }
@@ -22,14 +21,106 @@ class BLE_DB {
 
         NameOutput.close()
         fileOutput.close()
-
-    }
-    fun DBisEmpty(): Boolean{
-        val DBtext = dirFile.readText()
-        val DB = DBtext.split(" ", "\n")
-        return (DB[0]=="")
     }
 
+    fun find_max_distance(): Double{
+        var max = 0.0
+        if(BLE_DB().DBisEmpty())
+        {
+            return max
+        }
+
+        val RSSI = BLE_DB().get_Rssis()
+
+        for (rssi in RSSI)
+        {
+            val dis = Bluetooth().rssiTodis(rssi)
+            if(dis >= max)
+            {
+                max = dis
+            }
+        }
+        if(max >= 50)
+        {
+            max = find_max_distance()
+        }
+
+        return max
+    }
+    fun max_distance_of(Contained_string: String): Double{
+        var max = 0.0
+        if(DBisEmpty())
+        {
+            return max
+        }
+        val names = get_names()
+        val rssis = get_Rssis()
+
+        for(i in 0..(names.size-1))
+        {
+            if(names[i].contains(Contained_string) && max <= Bluetooth().rssiTodis(rssis[i]))
+            {
+                max = Bluetooth().rssiTodis(rssis[i])
+            }
+        }
+
+        return max
+    }
+
+    fun is_Synced(target_addr: String): Boolean{
+        val names = get_names()
+        val addrs = get_Addrs()
+        for(i in 0..(names.size-1))
+        {
+            if(target_addr == addrs[i])
+            {
+                if(names[i].contains("Synced"))
+                {
+                    return true
+                }
+                return false
+            }
+        }
+        //invalid target_addr case
+        return false
+    }
+
+    fun change_Synced(target_addr: String){
+        val index = get_index_from_addr(target_addr)
+        val names = get_names()
+        change_Name(target_addr, "[Synced]${names[index]}")
+    }
+    fun change_Name(target_addr: String, name: String){
+        val names = get_names()
+        val addrs = get_Addrs()
+        var result=""
+        for(i in 0..(names.size-1))
+        {
+            if(target_addr != addrs[i])
+            {
+                result = result + "${names[i]}\n"
+            }
+            else
+            {
+                result = result + "$name\n"
+            }
+        }
+
+        dirNameFile.writeText(result)
+    }
+
+
+    fun get_names(): Array<String>{
+        val DBtext = dirNameFile.readText()
+        val DB = DBtext.split("\n").toTypedArray()
+        val result = Array<String>(DB.size-1){ i -> ""}
+        for(i in 0..(DB.size-2))
+        {
+            result[i] = DB[i]
+        }
+
+        return result
+    }
     fun get_Addrs(): Array<String>{
         val DBtext = dirFile.readText()
         val DB = DBtext.split(" ", "\n")
@@ -46,7 +137,6 @@ class BLE_DB {
         }
         return result
     }
-
     fun get_Rssis(): Array<Short>{
         val DBtext = dirFile.readText()
         val DB = DBtext.split(" ", "\n")
@@ -64,7 +154,6 @@ class BLE_DB {
         return result
     }
 
-
     fun append(target: Int, text: String?) {
         val Real_Text = text + "\n"
         if(target == 1)
@@ -76,7 +165,6 @@ class BLE_DB {
             dirNameFile.appendText(Real_Text)
         }
     }
-
     fun update_rssi(addr: String, rssi: Short){
         val DBtext=dirFile.readText()
         val DB = DBtext.split(" ", "\n")
@@ -97,7 +185,6 @@ class BLE_DB {
 
         dirFile.writeText(result_text_DB)
     }
-
     fun delete(index: Int){
         val DBtext=dirFile.readText()
         val DB = DBtext.split(" ", "\n")
@@ -120,7 +207,7 @@ class BLE_DB {
         dirNameFile.writeText(result_text_name)
     }
 
-    fun contains(addr: String?): Boolean {
+    fun duplicate(addr: String?): Boolean {
         if(DBisEmpty())
         {
             return false
@@ -135,6 +222,24 @@ class BLE_DB {
             }
         }
         return false
+    }
+
+
+    private fun DBisEmpty(): Boolean{
+        val DBtext = dirFile.readText()
+        val DB = DBtext.split(" ", "\n")
+        return (DB[0]=="")
+    }
+    private fun get_index_from_addr(addr: String): Int{
+        val addrs = get_Addrs()
+        for(i in (0..addrs.size-1))
+        {
+            if(addr == addrs[i])
+            {
+                return i
+            }
+        }
+        return -1
     }
 
 }
