@@ -49,6 +49,7 @@ class Speaker (sampleRate_: Int,
                     .build())
             .setBufferSizeInBytes(bufferSizeInBytes)
             .setTransferMode(AudioTrack.MODE_STREAM)
+            .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
             .build()
 
         player.play()
@@ -159,6 +160,7 @@ class Speaker (sampleRate_: Int,
                 SpeakerState.PLAYING -> {
                     val offsetNow = offset.get()
                     val offsetNext = offsetNow + bufferSize
+
                     if (offsetNext <= source.size) {
                         array = if (!muted) {
                             source.sliceArray(offsetNow until offsetNext)

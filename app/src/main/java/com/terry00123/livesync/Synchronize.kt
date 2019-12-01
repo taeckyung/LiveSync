@@ -2,7 +2,6 @@ package com.terry00123.livesync
 
 import android.util.Log
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 
 fun getTDoA(recorder: Recorder, speaker: Speaker, sampleRate: Int, audio: ShortArray, syncDuration: Double) : Int {

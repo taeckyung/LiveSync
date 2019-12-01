@@ -21,13 +21,13 @@ class MainActivity : AppCompatActivity() {
     private val audioInChannel = AudioFormat.CHANNEL_IN_MONO
     private val audioOutChannel = AudioFormat.CHANNEL_OUT_MONO
     private val audioEncoding = AudioFormat.ENCODING_PCM_16BIT
-    private var bufferSizeInBytes = 512
+    private var bufferSizeInBytes = 1024
     
     private lateinit var recorder : Recorder
     private lateinit var speaker : Speaker
     private lateinit var audio : ShortArray
 
-    private var syncDuration = 12.5
+    private var syncDuration = 10.0
     private var audioLatency = 0
     private var timeInterval = 0
 
@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
             speaker.setTime(offsetInMilliseconds)
             speaker.play()
 
-            videoView.seekTo(offsetInMilliseconds)
+            videoView.seekTo(offsetInMilliseconds + audioLatency)
             videoView.start()
         }
 
@@ -122,10 +122,12 @@ class MainActivity : AppCompatActivity() {
             speaker.muteOn()
 
             timeInterval = getTDoA(recorder, speaker, sampleRate, audio, syncDuration)
-
+            Log.i("LiveSync_MainActivity", "setRelativeTime: ${audioLatency - timeInterval}")
+            Log.i("LiveSync_MainActivity", "currentSpeakerTime: ${speaker.getTime()}")
             speaker.setRelativeTime(audioLatency - timeInterval)
-            videoView.seekTo(speaker.getTime())
+            videoView.seekTo(speaker.getTime() + audioLatency)
             speaker.muteOff()
+            Log.i("LiveSync_MainActivity", "currentSpeakerTime: ${speaker.getTime()}")
 
             textTDoA.text = timeInterval.toString()
         }

@@ -14,7 +14,7 @@ fun IntArray.median() : Int {
     val sorted = this.copyOf()
     sorted.sort()
     return if (this.size % 2 == 0) {
-        (sorted[this.size/2] + sorted[this.size/2 + 1]) / 2
+        (sorted[this.size/2 - 1] + sorted[this.size/2]) / 2
     }
     else {
         sorted[this.size/2]
