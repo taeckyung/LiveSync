@@ -18,7 +18,7 @@ class Speaker (sampleRate_: Int,
     private val player : AudioTrack
     private val playerThread : Thread
 
-    private val zeroTone : ShortArray = ShortArray(bufferSize) {0}
+    private val zeroTone : ShortArray = ShortArray(bufferSize) {1}
 
     private enum class SpeakerState {
         IDLE, PLAYING, FINISHED

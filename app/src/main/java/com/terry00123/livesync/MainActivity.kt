@@ -21,18 +21,15 @@ class MainActivity : AppCompatActivity() {
     private val audioInChannel = AudioFormat.CHANNEL_IN_MONO
     private val audioOutChannel = AudioFormat.CHANNEL_OUT_MONO
     private val audioEncoding = AudioFormat.ENCODING_PCM_16BIT
-    private val bufferSizeInBytes = 1024
-    
-    private val syncDuration = sampleRate * 5
+    private var bufferSizeInBytes = 512
     
     private lateinit var recorder : Recorder
     private lateinit var speaker : Speaker
-    private lateinit var videoView : VideoView
     private lateinit var audio : ShortArray
 
+    private var syncDuration = 12.5
     private var audioLatency = 0
     private var timeInterval = 0
-    private var propagationDelay = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,7 +70,6 @@ class MainActivity : AppCompatActivity() {
         recorder = Recorder(sampleRate, audioInChannel, audioEncoding, bufferSizeInBytes)
         speaker = Speaker(sampleRate, audioOutChannel, audioEncoding, bufferSizeInBytes)
 
-        videoView = findViewById(R.id.videoView)
         val controller = MediaController(this)
         videoView.setMediaController(controller)
         videoView.setAudioFocusRequest(AudioManager.AUDIOFOCUS_NONE)
@@ -83,7 +79,10 @@ class MainActivity : AppCompatActivity() {
             mediaPlayer.setVolume(0F, 0F)
         }
 
-        getAudioLatency()
+        val latency = FindLatency(recorder, speaker).getLatency()
+        Log.i("LiveSync_MainActivity", "Audio latency: $latency")
+        textLatency.text = latency.toString()
+        audioLatency = latency ?: 0
 
         val audioFile = Wave.wavToShortArray(resources.openRawResource(R.raw.sample_sound))
         if (audioFile != null) {
@@ -91,15 +90,14 @@ class MainActivity : AppCompatActivity() {
             audio = audioFile
         }
         else {
-            Log.i("LiveSync_MainActivity","SHIT")
+            Log.e("LiveSync_MainActivity","Can't load audio file")
             finish()
         }
 
         speaker.setSource(audio)
 
         playButton.setOnClickListener {
-            val offsetInSeconds = offsetText.text.toString().toDouble()
-            val offsetInMilliseconds = (offsetInSeconds * 1000).toInt()
+            val offsetInMilliseconds = (offsetText.text.toString().toDouble() * 1000).toInt()
 
             speaker.setTime(offsetInMilliseconds)
             speaker.play()
@@ -119,70 +117,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         syncButton.setOnClickListener {
+            syncDuration = rangeText.text.toString().toDouble() * 2 * 1.25
+
             speaker.muteOn()
-            synchronize()
-            speaker.setRelativeTime(timeInterval - audioLatency)
+
+            timeInterval = getTDoA(recorder, speaker, sampleRate, audio, syncDuration)
+
+            speaker.setRelativeTime(audioLatency - timeInterval)
             videoView.seekTo(speaker.getTime())
             speaker.muteOff()
-            speaker.play()
-            videoView.start()
+
+            textTDoA.text = timeInterval.toString()
         }
     }
 
     override fun onDestroy() {
         recorder.release()
         speaker.release()
+        videoView.stopPlayback()
         super.onDestroy()
-    }
-
-    private fun getAudioLatency() {
-        val latency = FindLatency(recorder, speaker).getLatency()
-        Log.i("LiveSync_MainActivity", "Audio latency: $latency")
-        textLatency.text = latency.toString()
-
-        audioLatency = latency ?: 0
-    }
-
-    private fun synchronize() {
-        runBlocking {
-            coroutineScope {
-                val time = System.currentTimeMillis()
-
-                val recordedArray : ShortArray?
-                val contentArray : ShortArray?
-
-                val recordWait = async {
-                    recorder.getRecordedAudio(syncDuration)
-                }
-                val contentWait = async {
-                    speaker.getOffset()
-                }
-
-                val offset = contentWait.await()
-
-                recordedArray = recordWait.await()
-                contentArray = audio.sliceArray(offset until offset + syncDuration)
-
-                val elapsedTime = (System.currentTimeMillis() - time) / 1000.0
-                Log.i("LiveSync_MainActivity", "synchronize: $elapsedTime seconds")
-
-                timeInterval = compareInterval(contentArray, recordedArray)
-            }
-        }
-    }
-
-    private fun compareInterval(originalArray: ShortArray?, recordedArray: ShortArray?) : Int {
-        return if (originalArray == null || recordedArray == null) {
-            Log.e("LiveSync_MainActivity", "Converted array is null!")
-            0
-        } else {
-            val d = CrossCorrelation.crossCorrelate(originalArray, recordedArray)
-            val timeInterval = (d.toDouble() * 1000.0 / 44100.0).toInt()
-            Log.i("LiveSync_MainActivity", "timeInterval: $timeInterval")
-            runOnUiThread {
-                textTDoA.text = timeInterval.toString()
-            }
-            timeInterval
-        }
     }
 }

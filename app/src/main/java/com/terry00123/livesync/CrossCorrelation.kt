@@ -6,14 +6,6 @@ import kotlin.math.sqrt
 
 object CrossCorrelation {
 
-    private fun nearestPowerOf2(n: Int): Int {
-        var a = 1
-        while (a <= n) {
-            a = a shl 1
-        }
-        return a
-    }
-
     fun crossCorrelate(source: ShortArray, target: ShortArray): Int {
         val n = nearestPowerOf2(source.size + target.size - 1)
 
@@ -42,21 +34,15 @@ object CrossCorrelation {
 
         fft.ifft(timeProductReal, timeProductImag)
 
-        val sortedList = argMax(timeProductReal, timeProductImag)
-
-        Log.i("LiveSync_CrossCorrelation", sortedList.slice(0..4).toString())
-
-        var idx = sortedList[0].index
+        var idx = argMax(timeProductReal, timeProductImag)
 
         if (idx > n - source.size)
             idx -= n
 
-        Log.i("LiveSync_CrossCorrelation", "max arg: $idx, max val: ${sortedList[0].value}")
-
         return idx
     }
 
-    private fun argMax(re: DoubleArray, im: DoubleArray): List<IndexedValue<Double>> {
+    private fun argMax(re: DoubleArray, im: DoubleArray): Int {
 
         val arr = DoubleArray(re.size)
 
@@ -66,6 +52,6 @@ object CrossCorrelation {
 
         val arrWithIndex = arr.withIndex().sortedWith(compareByDescending{it.value})
 
-        return arrWithIndex.toList()
+        return arrWithIndex[0].index
     }
 }

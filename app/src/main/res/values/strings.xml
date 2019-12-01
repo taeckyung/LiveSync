@@ -1,14 +1,15 @@
 <resources>
     <string name="app_name">LiveSync</string>
-    <string name="videoOffset">Offset</string>
+    <string name="videoOffset">Offset (s)</string>
     <string name="videoPlay">Play</string>
     <string name="videoSync">Synchronize</string>
     <string name="videoStatistics">Statistics</string>
-    <string name="statisticsLatency">Audio latency:</string>
-    <string name="statisticsTDoA">TDoA:</string>
+    <string name="statisticsLatency">Audio latency (ms):</string>
+    <string name="statisticsTDoA">TDoA (ms):</string>
     <string name="zero">0</string>
     <string name="videoOffsetHint">seconds</string>
     <string name="VideoSettings">Settings</string>
     <string name="videoStop">Stop</string>
     <string name="videoResume">Resume</string>
+    <string name="syncRange" >Range (s)</string>
 </resources>
