@@ -177,7 +177,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    fun onSyncButtonClicked() {
+    private fun onSyncButtonClicked() {
         if (!isSyncThreadRunning.compareAndSet(false, true)) return
 
         runOnUiThread {

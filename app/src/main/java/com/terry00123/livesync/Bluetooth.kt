@@ -8,15 +8,19 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.IntentFilter
 import android.os.Handler
-import kotlin.math.max
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.math.pow
-
 
 class Bluetooth (private val context: Context) {
     private val mBlueToothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     private val handler = Handler()
+    private val mutex = Mutex()
 
     private val standardRSSI = -69
+    private val alpha = 0.6
+
     private var oldName = ""
     private val syncedName = "SYNCHRONIZED_"
 
@@ -37,7 +41,15 @@ class Bluetooth (private val context: Context) {
                 val deviceRSSI = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE)
 
                 if(deviceName != null) {
-                    deviceMap[deviceMAC] = BluetoothInfo(deviceName, deviceRSSI)
+                    runBlocking {
+                        mutex.withLock {
+                            val rssiBefore = deviceMap[deviceMAC]?.rssi ?: deviceRSSI
+                            val rssiNext = rssiBefore * alpha + deviceRSSI * (1 - alpha)
+                            deviceMap[deviceMAC] = BluetoothInfo(deviceName, rssiNext.toShort())
+
+                            Log.i("LiveSync_Bluetooth", "$deviceName RSSI update: $rssiBefore -> $rssiNext")
+                        }
+                    }
                 }
 
                 Log.i("LiveSync_Bluetooth", "Device Name: $deviceName, MAC: $deviceMAC, RSSI: $deviceRSSI")
@@ -71,6 +83,8 @@ class Bluetooth (private val context: Context) {
     fun release() {
         mBlueToothAdapter.cancelDiscovery()
         handler.removeCallbacks(startDiscovery)
+        mBlueToothAdapter.name = oldName
+        deviceMap.clear()
     }
 
     fun setSynchronized() {
@@ -93,14 +107,21 @@ class Bluetooth (private val context: Context) {
     }
 
     fun getMaxPropDelay() : Int /* Milliseconds */ {
-        var maxRSSI = 0
-        for ((key, value) in deviceMap) {
-            if (value.name.contains(syncedName)) {
-                maxRSSI = max(maxRSSI, value.rssi.toInt())
+        var maxRSSI = 0.toShort()
+        runBlocking {
+            mutex.withLock {
+                 maxRSSI = deviceMap.maxBy {
+                    if (it.value.name.contains(syncedName)) {
+                        it.value.rssi.toInt()
+                    } else {
+                        0
+                    }
+                }?.value?.rssi ?: 0
             }
         }
-        Log.i("LiveSync_Bluetooth", "getMaxPropDelay: ${distanceToDelay(rssiToDistance(maxRSSI.toShort()))}")
-        return distanceToDelay(rssiToDistance(maxRSSI.toShort()))
+
+        Log.i("LiveSync_Bluetooth", "rssi: $maxRSSI | getMaxPropDelay: ${distanceToDelay(rssiToDistance(maxRSSI))}")
+        return distanceToDelay(rssiToDistance(maxRSSI))
     }
 
     private fun rssiToDistance(rssi: Short): Double  /* Meters */ {
