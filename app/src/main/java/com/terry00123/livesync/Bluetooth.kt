@@ -24,7 +24,7 @@ class Bluetooth (private val context: Context) {
     private var oldName = ""
     private val syncedName = "SYNCHRONIZED_"
 
-    private class BluetoothInfo(var name: String, var rssi: Short)
+    private class BluetoothInfo(var name: String, var rssi: Double)
     private val deviceMap = mutableMapOf<String, BluetoothInfo>()
 
     private val mReceiver = object : BroadcastReceiver() {
@@ -38,14 +38,14 @@ class Bluetooth (private val context: Context) {
 
                 val deviceName = device.name
                 val deviceMAC = device.address
-                val deviceRSSI = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE)
+                val deviceRSSI = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toDouble()
 
                 if(deviceName != null) {
                     runBlocking {
                         mutex.withLock {
                             val rssiBefore = deviceMap[deviceMAC]?.rssi ?: deviceRSSI
                             val rssiNext = rssiBefore * alpha + deviceRSSI * (1 - alpha)
-                            deviceMap[deviceMAC] = BluetoothInfo(deviceName, rssiNext.toShort())
+                            deviceMap[deviceMAC] = BluetoothInfo(deviceName, rssiNext)
 
                             Log.i("LiveSync_Bluetooth", "$deviceName RSSI update: $rssiBefore -> $rssiNext")
                         }
@@ -107,7 +107,7 @@ class Bluetooth (private val context: Context) {
     }
 
     fun getMaxPropDelay() : Int /* Milliseconds */ {
-        var maxRSSI = 0.toShort()
+        var maxRSSI = 0.0
         runBlocking {
             mutex.withLock {
                  maxRSSI = deviceMap.maxBy {
@@ -116,7 +116,7 @@ class Bluetooth (private val context: Context) {
                     } else {
                         0
                     }
-                }?.value?.rssi ?: 0
+                }?.value?.rssi ?: 0.0
             }
         }
 
@@ -124,8 +124,8 @@ class Bluetooth (private val context: Context) {
         return distanceToDelay(rssiToDistance(maxRSSI))
     }
 
-    private fun rssiToDistance(rssi: Short): Double  /* Meters */ {
-        return 10.toDouble().pow((standardRSSI - rssi.toDouble()) / 20)
+    private fun rssiToDistance(rssi: Double): Double  /* Meters */ {
+        return 10.toDouble().pow((standardRSSI - rssi) / 20)
     }
 
     private fun distanceToDelay(dist: Double) : Int /* Milliseconds */ {
