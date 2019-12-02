@@ -77,7 +77,7 @@ class Bluetooth (private val context: Context) {
         mBlueToothAdapter.name = syncedName + oldName
 
         val discoverableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0)
+            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300) // Maximum is 300
         }
         context.startActivity(discoverableIntent)
     }
