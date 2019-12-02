@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.widget.MediaController
 import android.widget.VideoView
@@ -13,6 +14,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
+import java.lang.Runnable
 
 class MainActivity : AppCompatActivity() {
     private val MY_PERMISSIONS_REQUEST_RECORD_AUDIO = 1
@@ -30,6 +32,9 @@ class MainActivity : AppCompatActivity() {
     private var syncDuration = 10.0
     private var audioLatency = 0
     private var timeInterval = 0
+
+    //for test
+    private lateinit var handler : Handler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -131,9 +136,24 @@ class MainActivity : AppCompatActivity() {
 
             textTDoA.text = timeInterval.toString()
         }
+
+        handler = Handler()
+
+        timeChecker.run()
+    }
+
+    private val timeChecker = object : Runnable {
+        override fun run() {
+            try {
+                Log.i("LiveSync_Test", "Speaker time: ${speaker.getTime()}")
+            } finally {
+                handler.postDelayed(this, 1000)
+            }
+        }
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(timeChecker)
         recorder.release()
         speaker.release()
         videoView.stopPlayback()
