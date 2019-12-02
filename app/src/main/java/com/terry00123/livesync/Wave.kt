@@ -33,7 +33,7 @@ object Wave{
 
         val bits = buffer.short
         if (format != FORMAT || channels != CHANNELS || rate != RATE || bits != BITS) {
-            Log.i("myTag", "Format: $format Channels: $channels Rate: $rate Bits: $bits")
+            Log.e("LiveSync_Wave", "Format: $format Channels: $channels Rate: $rate Bits: $bits")
             return null
         }
 
@@ -59,7 +59,7 @@ object Wave{
         }
         return shortArray
     }
-
+/*
     fun filterShortArray(arr: ShortArray?) : ShortArray? {
         if (arr == null) return null
 
@@ -79,4 +79,5 @@ object Wave{
 
         return array
     }
+ */
 }
