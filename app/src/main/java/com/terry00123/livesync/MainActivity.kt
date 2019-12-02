@@ -42,11 +42,26 @@ class MainActivity : AppCompatActivity() {
 
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED
+            || ContextCompat.checkSelfPermission(this,
+                Manifest.permission.BLUETOOTH)
+            != PackageManager.PERMISSION_GRANTED
+            ||ContextCompat.checkSelfPermission(this,
+                Manifest.permission.BLUETOOTH_ADMIN)
+            != PackageManager.PERMISSION_GRANTED
+            ||ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED||ContextCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
             != PackageManager.PERMISSION_GRANTED) {
 
             // Permission is not granted
             ActivityCompat.requestPermissions(this,
-                arrayOf(Manifest.permission.RECORD_AUDIO),
+                arrayOf(Manifest.permission.RECORD_AUDIO,
+                    Manifest.permission.BLUETOOTH,
+                    Manifest.permission.BLUETOOTH_ADMIN,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE),
                 MY_PERMISSIONS_REQUEST_RECORD_AUDIO)
         }
         else {
@@ -74,6 +89,8 @@ class MainActivity : AppCompatActivity() {
     private fun lateInit() {
         recorder = Recorder(sampleRate, audioInChannel, audioEncoding, bufferSizeInBytes)
         speaker = Speaker(sampleRate, audioOutChannel, audioEncoding, bufferSizeInBytes)
+
+        Bluetooth().initialize(this)
 
         val controller = MediaController(this)
         videoView.setMediaController(controller)
