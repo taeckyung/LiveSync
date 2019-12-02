@@ -7,17 +7,17 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.util.Log
+import android.view.View
 import android.widget.MediaController
-import android.widget.VideoView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.*
 import java.lang.Runnable
+import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : AppCompatActivity() {
-    private val MY_PERMISSIONS_REQUEST_RECORD_AUDIO = 1
+    private val PERMISSION_GRANTED = 1
 
     private val sampleRate = 44100
     private val audioInChannel = AudioFormat.CHANNEL_IN_MONO
@@ -29,9 +29,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var speaker : Speaker
     private lateinit var audio : ShortArray
 
+    private lateinit var bluetooth: Bluetooth
+
+    private var isSyncThreadRunning = AtomicBoolean(false)
+
     private var syncDuration = 10.0
     private var audioLatency = 0
     private var timeInterval = 0
+    private var propDelay = 0
 
     //for test
     private lateinit var handler : Handler
@@ -41,28 +46,23 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.RECORD_AUDIO)
-            != PackageManager.PERMISSION_GRANTED
-            || ContextCompat.checkSelfPermission(this,
-                Manifest.permission.BLUETOOTH)
-            != PackageManager.PERMISSION_GRANTED
-            ||ContextCompat.checkSelfPermission(this,
-                Manifest.permission.BLUETOOTH_ADMIN)
-            != PackageManager.PERMISSION_GRANTED
-            ||ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED||ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            != PackageManager.PERMISSION_GRANTED) {
+                Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this,
+                Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this,
+                Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
 
-            // Permission is not granted
             ActivityCompat.requestPermissions(this,
                 arrayOf(Manifest.permission.RECORD_AUDIO,
                     Manifest.permission.BLUETOOTH,
                     Manifest.permission.BLUETOOTH_ADMIN,
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                MY_PERMISSIONS_REQUEST_RECORD_AUDIO)
+                PERMISSION_GRANTED)
         }
         else {
             lateInit()
@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         when (requestCode) {
-            MY_PERMISSIONS_REQUEST_RECORD_AUDIO -> {
+            PERMISSION_GRANTED -> {
                 if ((grantResults.isNotEmpty() && grantResults[0]
                             == PackageManager.PERMISSION_GRANTED)) {
                     lateInit()
@@ -90,7 +90,7 @@ class MainActivity : AppCompatActivity() {
         recorder = Recorder(sampleRate, audioInChannel, audioEncoding, bufferSizeInBytes)
         speaker = Speaker(sampleRate, audioOutChannel, audioEncoding, bufferSizeInBytes)
 
-        Bluetooth().initialize(this)
+        bluetooth = Bluetooth(this)
 
         val controller = MediaController(this)
         videoView.setMediaController(controller)
@@ -122,6 +122,7 @@ class MainActivity : AppCompatActivity() {
             val offsetInMilliseconds = (offsetText.text.toString().toDouble() * 1000).toInt()
 
             speaker.setTime(offsetInMilliseconds)
+            speaker.muteOn()
             speaker.play()
 
             videoView.seekTo(offsetInMilliseconds + audioLatency)
@@ -136,27 +137,24 @@ class MainActivity : AppCompatActivity() {
         stopButton.setOnClickListener {
             speaker.stop()
             videoView.pause()
+            bluetooth.setUnSynchronized()
         }
 
         syncButton.setOnClickListener {
-            syncDuration = rangeText.text.toString().toDouble() * 2 * 1.25
-
-            speaker.muteOn()
-
-            timeInterval = getTDoA(recorder, speaker, sampleRate, audio, syncDuration)
-            Log.i("LiveSync_MainActivity", "setRelativeTime: ${audioLatency - timeInterval}")
-            Log.i("LiveSync_MainActivity", "currentSpeakerTime: ${speaker.getTime()}")
-            speaker.setRelativeTime(audioLatency - timeInterval)
-            videoView.seekTo(speaker.getTime() + audioLatency)
-            speaker.muteOff()
-            Log.i("LiveSync_MainActivity", "currentSpeakerTime: ${speaker.getTime()}")
-
-            textTDoA.text = timeInterval.toString()
+            Thread {
+                kotlin.run {
+                    onSyncButtonClicked()
+                }
+            }.start()
         }
 
-        handler = Handler()
+        leadingButton.setOnClickListener {
+            speaker.muteOff()
+            bluetooth.setSynchronized()
+        }
 
-        timeChecker.run()
+        //handler = Handler()
+        //timeChecker.run()
     }
 
     private val timeChecker = object : Runnable {
@@ -170,10 +168,46 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        handler.removeCallbacks(timeChecker)
+        //handler.removeCallbacks(timeChecker)
         recorder.release()
         speaker.release()
+        bluetooth.release()
         videoView.stopPlayback()
+        audio = ShortArray(0)
         super.onDestroy()
+    }
+
+    fun onSyncButtonClicked() {
+        if (!isSyncThreadRunning.compareAndSet(false, true)) return
+
+        runOnUiThread {
+            progressBar.visibility = View.VISIBLE
+            progressBar.invalidate()
+        }
+        syncDuration = rangeText.text.toString().toDouble() * 2
+
+        timeInterval = getTDoA(recorder, speaker, sampleRate, audio, syncDuration)
+        propDelay = bluetooth.getMaxPropDelay()
+
+        Log.i(
+            "LiveSync_MainActivity",
+            "setRelativeTime: ${audioLatency - timeInterval}"
+        )
+        Log.i("LiveSync_MainActivity", "currentSpeakerTime: ${speaker.getTime()}")
+
+        speaker.setRelativeTime(audioLatency - timeInterval + propDelay)
+        videoView.seekTo(speaker.getTime() + audioLatency)
+        speaker.muteOff()
+
+        Log.i("LiveSync_MainActivity", "currentSpeakerTime: ${speaker.getTime()}")
+        bluetooth.setSynchronized()
+        runOnUiThread {
+            progressBar.visibility = View.INVISIBLE
+            progressBar.invalidate()
+            textTDoA.text = timeInterval.toString()
+            textPropDelay.text = propDelay.toString()
+        }
+
+        isSyncThreadRunning.set(false)
     }
 }

@@ -47,6 +47,8 @@ class Recorder (sampleRate_: Int,
     fun release() {
         currentState.set(RecorderState.FINISHED)
         recordingThread.join()
+        micData = ShortArray(0)
+        recordedTime = LongArray(0)
         recorder.stop()
         recorder.release()
     }

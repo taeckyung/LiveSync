@@ -49,7 +49,7 @@ class Speaker (sampleRate_: Int,
                     .build())
             .setBufferSizeInBytes(bufferSizeInBytes)
             .setTransferMode(AudioTrack.MODE_STREAM)
-            .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
+            /*.setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)*/
             .build()
 
         player.play()
@@ -67,6 +67,7 @@ class Speaker (sampleRate_: Int,
     fun release() {
         currentState.set(SpeakerState.FINISHED)
         playerThread.join()
+        source = ShortArray(bufferSize) {0}
         player.stop()
         player.release()
     }

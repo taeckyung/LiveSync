@@ -2,7 +2,7 @@
     <string name="app_name">LiveSync</string>
     <string name="videoOffset">Offset (s)</string>
     <string name="videoPlay">Play</string>
-    <string name="videoSync">Synchronize</string>
+    <string name="videoSync">As follower</string>
     <string name="videoStatistics">Statistics</string>
     <string name="statisticsLatency">Audio latency (ms):</string>
     <string name="statisticsTDoA">TDoA (ms):</string>
@@ -12,4 +12,6 @@
     <string name="videoStop">Stop</string>
     <string name="videoResume">Resume</string>
     <string name="syncRange" >Range (s)</string>
+    <string name="statisticsPropDelay">PropDelay (ms):</string>
+    <string name="videoLeading">As leader</string>
 </resources>

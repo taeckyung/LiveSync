@@ -1,95 +1,114 @@
 package com.terry00123.livesync
 
-import android.app.Application
-import android.bluetooth.*
-import android.widget.Toast
-import android.bluetooth.le.BluetoothLeScanner
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanResult
 import android.content.Intent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.util.Log
-import android.bluetooth.BluetoothProfile
-import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
-import java.util.*
 import android.bluetooth.BluetoothDevice
 import android.content.IntentFilter
-import androidx.core.os.HandlerCompat.postDelayed
-import java.lang.Compiler.disable
-import java.lang.Compiler.enable
-import java.util.logging.Handler
+import android.os.Handler
+import kotlin.math.max
+import kotlin.math.pow
 
 
-class Bluetooth {
-    val mBlueToothAdapter = BluetoothAdapter.getDefaultAdapter()
-    val standardRSSI = -69
-    val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+class Bluetooth (private val context: Context) {
+    private val mBlueToothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+    private val handler = Handler()
 
-    val mReceiver = object : BroadcastReceiver() {
+    private val standardRSSI = -69
+    private var oldName = ""
+    private val syncedName = "SYNCHRONIZED_"
+
+    private class BluetoothInfo(var name: String, var rssi: Short)
+    private val deviceMap = mutableMapOf<String, BluetoothInfo>()
+
+    private val mReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val action = intent.action
+
             if (BluetoothDevice.ACTION_FOUND == action) {
-                // Discovery has found a device. Get the BluetoothDevice
-                // object and its info from the Intent.
                 val device =
                     intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                        ?: return
+
                 val deviceName = device.name
-                val deviceHardwareAddress = device.address // MAC address
-                val deviceRssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE)
+                val deviceMAC = device.address
+                val deviceRSSI = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE)
 
-                if(deviceName != null)
-                {
-                    if(!BLE_DB().duplicate(deviceHardwareAddress))
-                    {
-                        val text = "$deviceHardwareAddress $deviceRssi"
-                        BLE_DB().append(1, text)
-                        BLE_DB().append(2, deviceName)
-                    }
-                    else{
-                        BLE_DB().update_rssi(deviceHardwareAddress, deviceRssi)
-                    }
+                if(deviceName != null) {
+                    deviceMap[deviceMAC] = BluetoothInfo(deviceName, deviceRSSI)
                 }
 
-                Log.w("Device Name: ", "device $deviceName")
-                Log.w("deviceHardwareAddress ", "hard$deviceHardwareAddress, rssi: $deviceRssi")
+                Log.i("LiveSync_Bluetooth", "Device Name: $deviceName, MAC: $deviceMAC, RSSI: $deviceRSSI")
+            }
+        }
+    }
+    private val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+
+    private val startDiscovery = object : Runnable {
+        override fun run() {
+            try {
+                mBlueToothAdapter.startDiscovery()
+            } finally {
+                handler.postDelayed(this, 12000)
             }
         }
     }
 
-
-    fun initialize(context: Context){
-        BLE_DB().initialize()
-        if(!mBlueToothAdapter.isEnabled)
-        {
-            Toast.makeText(context,"Please, make sure that bluetooth is enabled", Toast.LENGTH_LONG).show()
+    init {
+        if(!mBlueToothAdapter.isEnabled) {
+            mBlueToothAdapter.enable()
         }
-        val discovery = mBlueToothAdapter.startDiscovery()
+
+        oldName = mBlueToothAdapter.name
+
         context.registerReceiver(mReceiver, filter)
+
+        startDiscovery.run()
     }
 
-    fun set_name(new_name: String){
-        val oldname = mBlueToothAdapter.name
-        val handler = android.os.Handler()
-        val runnable = object: Runnable {
-            override fun run() {
-                if(mBlueToothAdapter.isEnabled )
-                {
-                    Log.w("name", "name: ${mBlueToothAdapter.name}")
-                    mBlueToothAdapter.setName(new_name)
-                    handler.postDelayed(this, 10)
-                }
+    fun release() {
+        mBlueToothAdapter.cancelDiscovery()
+        handler.removeCallbacks(startDiscovery)
+    }
+
+    fun setSynchronized() {
+        mBlueToothAdapter.name = syncedName + oldName
+
+        val discoverableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0)
+        }
+        context.startActivity(discoverableIntent)
+    }
+
+    fun setUnSynchronized() {
+        mBlueToothAdapter.name = oldName
+/*
+        val discoverableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0)
+        }
+        context.startActivity(discoverableIntent)
+ */
+    }
+
+    fun getMaxPropDelay() : Int /* Milliseconds */ {
+        var maxRSSI = 0
+        for ((key, value) in deviceMap) {
+            if (value.name.contains(syncedName)) {
+                maxRSSI = max(maxRSSI, value.rssi.toInt())
             }
         }
-        mBlueToothAdapter.setName(new_name)
-        handler.post(runnable)
-
+        Log.i("LiveSync_Bluetooth", "getMaxPropDelay: ${distanceToDelay(rssiToDistance(maxRSSI.toShort()))}")
+        return distanceToDelay(rssiToDistance(maxRSSI.toShort()))
     }
 
-
-    fun rssiTodis(rssi: Short): Double{
-        return Math.pow(10.toDouble(), (standardRSSI - rssi.toDouble())/ 20)
+    private fun rssiToDistance(rssi: Short): Double  /* Meters */ {
+        return 10.toDouble().pow((standardRSSI - rssi.toDouble()) / 20)
     }
+
+    private fun distanceToDelay(dist: Double) : Int /* Milliseconds */ {
+        return (dist * 1000 / 343).toInt()
+    }
+
 }
