@@ -17,8 +17,10 @@ import android.bluetooth.BluetoothManager
 import java.util.*
 import android.bluetooth.BluetoothDevice
 import android.content.IntentFilter
-
-
+import androidx.core.os.HandlerCompat.postDelayed
+import java.lang.Compiler.disable
+import java.lang.Compiler.enable
+import java.util.logging.Handler
 
 
 class Bluetooth {
@@ -65,7 +67,25 @@ class Bluetooth {
             Toast.makeText(context,"Please, make sure that bluetooth is enabled", Toast.LENGTH_LONG).show()
         }
         val discovery = mBlueToothAdapter.startDiscovery()
-        Log.i("Discovery", "$discovery")
+        context.registerReceiver(mReceiver, filter)
+    }
+
+    fun set_name(new_name: String){
+        val oldname = mBlueToothAdapter.name
+        val handler = android.os.Handler()
+        val runnable = object: Runnable {
+            override fun run() {
+                if(mBlueToothAdapter.isEnabled )
+                {
+                    Log.w("name", "name: ${mBlueToothAdapter.name}")
+                    mBlueToothAdapter.setName(new_name)
+                    handler.postDelayed(this, 10)
+                }
+            }
+        }
+        mBlueToothAdapter.setName(new_name)
+        handler.post(runnable)
+
     }
 
 

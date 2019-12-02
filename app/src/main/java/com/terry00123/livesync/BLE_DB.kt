@@ -23,6 +23,7 @@ class BLE_DB {
         fileOutput.close()
     }
 
+
     fun find_max_distance(): Double{
         var max = 0.0
         if(BLE_DB().DBisEmpty())
@@ -47,7 +48,7 @@ class BLE_DB {
 
         return max
     }
-    fun max_distance_of(Contained_string: String): Double{
+    fun find_max_distance_of(Contained_string: String): Double{
         var max = 0.0
         if(DBisEmpty())
         {
@@ -240,6 +241,12 @@ class BLE_DB {
             }
         }
         return -1
+    }
+
+    fun onDestroy(){
+        dirNameFile.delete()
+        dirFile.delete()
+        File(dirPath).delete()
     }
 
 }

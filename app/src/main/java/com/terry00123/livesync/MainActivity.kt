@@ -74,12 +74,7 @@ class MainActivity : AppCompatActivity() {
         recorder = Recorder()
         speaker = Speaker()
 
-
         Bluetooth().initialize(this)
-        val filter = Bluetooth().filter
-        val receiver = Bluetooth().mReceiver
-
-        registerReceiver(receiver, filter)
 /*
         videoView = findViewById(R.id.videoView)
         val controller = MediaController(this)
@@ -106,6 +101,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         recorder.release()
         speaker.release()
+        BLE_DB().onDestroy()
         super.onDestroy()
     }
 
