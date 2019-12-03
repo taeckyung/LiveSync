@@ -117,7 +117,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         speaker.setSource(audio)
-        speaker.addBeepSound(1000, 3000)
+        speaker.muteOn()
+        speaker.addBeepSound(100, 3000)
 
         playButton.setOnClickListener {
             val offsetInMilliseconds = (offsetText.text.toString().toDouble() * 1000).toInt()
