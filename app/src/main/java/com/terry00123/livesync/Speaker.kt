@@ -6,7 +6,7 @@ import android.media.AudioTrack
 import android.util.Log
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.system.measureTimeMillis
+import kotlin.math.max
 
 class Speaker (sampleRate_: Int,
                audioChannel: Int,
@@ -32,7 +32,19 @@ class Speaker (sampleRate_: Int,
     private var offset = AtomicInteger(0)
     private var muted = false
 
-    private val toneList = ArrayList<Pair<ShortArray, Int>>()
+    private class ToneInfo(val tone: ShortArray,
+                           val toneSize: Int,
+                           val interval: Int) {
+        fun getValueAt(i: Int, offset: Int) : Short {
+            val index = offset % interval
+            return if (index + i < toneSize) {
+                tone[index + i]
+            } else {
+                0
+            }
+        }
+    }
+    private val toneList = ArrayList<ToneInfo>()
 
     init {
         player = AudioTrack.Builder()
@@ -133,6 +145,14 @@ class Speaker (sampleRate_: Int,
         muted = false
     }
 
+    fun addBeepSound(duration: Int, repeatInterval: Int) {
+        val count = max(1, duration * sampleRate / 1000)
+        val interval = repeatInterval * sampleRate / 1000
+        val array = Tone.generateFreq(11000, sampleRate, count)
+        Log.i("LiveSync_Speaker", "addBeepSound: $duration, $repeatInterval")
+        toneList.add(ToneInfo(array, count, interval))
+    }
+
 /*
     fun addToneImmediate(freq: Int, milliseconds: Int, amplitude: Double) {
         val tone = Tone.generateFreq(freq, sampleRate, bufferSize, amplitude)
@@ -163,11 +183,14 @@ class Speaker (sampleRate_: Int,
                     val offsetNext = offsetNow + bufferSize
 
                     if (offsetNext <= source.size) {
-                        array = if (!muted) {
-                            source.sliceArray(offsetNow until offsetNext)
+                        if (!muted) {
+                            array = source.sliceArray(offsetNow until offsetNext)
+                            if (toneList.size != 0) {
+                                addToneToArray(array, offsetNow)
+                            }
                         }
                         else {
-                            zeroTone.copyOf()
+                            array = zeroTone.copyOf()
                         }
                         offset.compareAndSet(offsetNow, offsetNext)
                     }
@@ -184,31 +207,19 @@ class Speaker (sampleRate_: Int,
             }
 
             if (array != null) {
-                if (toneList.size != 0) {
-                    val time = measureTimeMillis { addToneToArray(array) }
-                    Log.i("LiveSync_Speaker", "addToneToArray: $time ms.")
-                }
                 player.write(array, 0, bufferSize)
             }
         }
     }
 
-    private fun addToneToArray(array: ShortArray) {
+    private fun addToneToArray(array: ShortArray, offset: Int) {
         for (i in 0 until bufferSize) {
             var value: Int = array[i].toInt()
             for (tone in toneList) {
-                value += tone.first[i]
+                value += tone.getValueAt(i, offset)
             }
             value = value.coerceIn(java.lang.Short.MIN_VALUE..java.lang.Short.MAX_VALUE)
             array[i] = value.toShort()
-        }
-        for (i in toneList.indices.reversed()) {
-            if (toneList[i].second == 1) {
-                toneList.removeAt(i)
-            }
-            else {
-                toneList[i] = toneList[i].copy(toneList[i].first, toneList[i].second - 1)
-            }
         }
     }
 

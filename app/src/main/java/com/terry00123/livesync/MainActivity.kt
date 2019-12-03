@@ -117,12 +117,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         speaker.setSource(audio)
+        speaker.addBeepSound(1000, 3000)
 
         playButton.setOnClickListener {
             val offsetInMilliseconds = (offsetText.text.toString().toDouble() * 1000).toInt()
 
             speaker.setTime(offsetInMilliseconds)
-            speaker.muteOn()
             speaker.play()
 
             videoView.seekTo(offsetInMilliseconds + audioLatency)
@@ -153,8 +153,8 @@ class MainActivity : AppCompatActivity() {
             bluetooth.setSynchronized()
         }
 
-        //handler = Handler()
-        //timeChecker.run()
+        handler = Handler()
+        timeChecker.run()
     }
 
     private val timeChecker = object : Runnable {
@@ -168,7 +168,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        //handler.removeCallbacks(timeChecker)
+        handler.removeCallbacks(timeChecker)
         recorder.release()
         speaker.release()
         bluetooth.release()
