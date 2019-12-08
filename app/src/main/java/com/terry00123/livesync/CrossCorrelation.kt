@@ -1,6 +1,5 @@
 package com.terry00123.livesync
 
-import android.util.Log
 import kotlin.math.pow
 import kotlin.math.sqrt
 

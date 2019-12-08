@@ -90,7 +90,11 @@ class MainActivity : AppCompatActivity() {
         recorder = Recorder(sampleRate, audioInChannel, audioEncoding, bufferSizeInBytes)
         speaker = Speaker(sampleRate, audioOutChannel, audioEncoding, bufferSizeInBytes)
 
-        bluetooth = Bluetooth(this)
+        try {
+            bluetooth = Bluetooth(this)
+        } catch (e: IllegalStateException) {
+            finish()
+        }
 
         val controller = MediaController(this)
         videoView.setMediaController(controller)
@@ -170,11 +174,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         handler.removeCallbacks(timeChecker)
-        recorder.release()
-        speaker.release()
-        bluetooth.release()
+        if (this::recorder.isInitialized)
+            recorder.release()
+        if (this::speaker.isInitialized)
+            speaker.release()
+        if (this::bluetooth.isInitialized)
+            bluetooth.release()
         videoView.stopPlayback()
-        audio = ShortArray(0)
+        if (this::audio.isInitialized)
+            audio = ShortArray(0)
         super.onDestroy()
     }
 

@@ -153,22 +153,6 @@ class Speaker (sampleRate_: Int,
         toneList.add(ToneInfo(array, count, interval))
     }
 
-/*
-    fun addToneImmediate(freq: Int, milliseconds: Int, amplitude: Double) {
-        val tone = Tone.generateFreq(freq, sampleRate, bufferSize, amplitude)
-        val count = milliseconds * sampleRate / bufferSize / 1000
-        toneList.add(Pair(tone, count))
-        Log.i("LiveSync_Speaker", "addToneImmediate: tone $freq hz of duration $count added.")
-    }
-
-    fun flush() {
-        flushed.set(true)
-        synchronized(waitObject) {
-            waitObject.wait()
-        }
-    }
- */
-
     private fun playerThreadBody() {
         var finished = false
         while (!finished) {
@@ -190,7 +174,7 @@ class Speaker (sampleRate_: Int,
                             }
                         }
                         else {
-                            array = zeroTone.copyOf()
+                            array = zeroTone
                         }
                         offset.compareAndSet(offsetNow, offsetNext)
                     }
@@ -202,7 +186,8 @@ class Speaker (sampleRate_: Int,
                     }
                 }
                 else -> {
-                    array = zeroTone.copyOf()
+                    /* We should read data from buffer to prevent recorder driver to be idle. */
+                    array = zeroTone
                 }
             }
 

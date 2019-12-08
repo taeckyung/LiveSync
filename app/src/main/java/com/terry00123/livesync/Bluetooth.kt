@@ -14,15 +14,15 @@ import kotlinx.coroutines.sync.withLock
 import kotlin.math.pow
 
 class Bluetooth (private val context: Context) {
-    private val mBlueToothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+    private val mBlueToothAdapter = BluetoothAdapter.getDefaultAdapter()
     private val handler = Handler()
     private val mutex = Mutex()
 
     private val standardRSSI = -69
     private val alpha = 0.6
 
-    private var oldName = ""
-    private val syncedName = "SYNCHRONIZED_"
+    private val oldName = mBlueToothAdapter.name
+    private val syncedName = "SYNCHRONIZED_$oldName"
 
     private class BluetoothInfo(var name: String, var rssi: Double)
     private val deviceMap = mutableMapOf<String, BluetoothInfo>()
@@ -69,11 +69,11 @@ class Bluetooth (private val context: Context) {
     }
 
     init {
+        check(mBlueToothAdapter != null)
+
         if(!mBlueToothAdapter.isEnabled) {
             mBlueToothAdapter.enable()
         }
-
-        oldName = mBlueToothAdapter.name
 
         context.registerReceiver(mReceiver, filter)
 
@@ -88,7 +88,7 @@ class Bluetooth (private val context: Context) {
     }
 
     fun setSynchronized() {
-        mBlueToothAdapter.name = syncedName + oldName
+        mBlueToothAdapter.name = syncedName
 
         val discoverableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
             putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0)

@@ -103,11 +103,7 @@ class Recorder (sampleRate_: Int,
                     }
                 }
                 else -> {
-                    /*
-                     * We should read data from buffer even if the data is useless
-                     * https://stackoverflow.com/questions/12002031/what-will-happen-when-the-number
-                     * -of-data-which-is-sampled-through-audio-exceed-t/12002230#12002230
-                     */
+                    /* We should read data from buffer to prevent recorder driver to be idle. */
                     recorder.read(tempBuffer, 0, bufferSize)
                 }
             }
