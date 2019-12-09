@@ -194,7 +194,7 @@ class MainActivity : AppCompatActivity() {
             progressBar.visibility = View.VISIBLE
             progressBar.invalidate()
         }
-        syncDuration = rangeText.text.toString().toDouble() * 2
+        syncDuration = rangeText.text.toString().toDouble()
 
         timeInterval = getTDoA(recorder, speaker, sampleRate, audio, syncDuration)
         propDelay = bluetooth.getMaxPropDelay()

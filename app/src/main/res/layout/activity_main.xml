@@ -169,7 +169,7 @@
                 android:inputType="numberDecimal"
                 android:padding="5dp"
                 android:singleLine="true"
-                android:text="5.0"
+                android:text="10.0"
                 android:textAlignment="viewStart"
                 android:textSize="18sp" />
 
