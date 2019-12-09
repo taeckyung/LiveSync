@@ -141,6 +141,7 @@ class MainActivity : AppCompatActivity() {
 
         stopButton.setOnClickListener {
             speaker.stop()
+            speaker.muteOn()
             videoView.pause()
             bluetooth.setUnSynchronized()
         }
