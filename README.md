@@ -2,9 +2,9 @@
 
 KAIST CS442 (19 Fall) Project by Taeckyung LEE and Junhyeok Choi.
 
-## Running Environment
+## Test Environment
 
-Android (SDK version 26 and over)
+Android (SDK version 26)
 
 Requires Speaker, Microphone, and Bluetooth available.
 
