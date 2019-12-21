@@ -122,12 +122,13 @@ class MainActivity : AppCompatActivity() {
 
         speaker.setSource(audio)
         speaker.muteOn()
-        speaker.addBeepSound(100, 3000)
+        //speaker.addBeepSound(100, 3000)
 
         playButton.setOnClickListener {
             val offsetInMilliseconds = (offsetText.text.toString().toDouble() * 1000).toInt()
 
             speaker.setTime(offsetInMilliseconds)
+            speaker.muteOn()
             speaker.play()
 
             videoView.seekTo(offsetInMilliseconds + audioLatency)
