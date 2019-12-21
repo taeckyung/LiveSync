@@ -10,7 +10,8 @@ Requires Speaker, Microphone, and Bluetooth available.
 
 ## Installation
 
-Install as a typical Android applications via Android Studio.
+Binary file: https://drive.google.com/open?id=1EVbe35_cbNHkg8zd64kiqCLBkUvNw9x2
+Download apk file above or build as a typical Android application via Android Studio.
 
 ## build.gradle
 
