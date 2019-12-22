@@ -6,13 +6,17 @@ KAIST CS442 (19 Fall) Project by Taeckyung LEE and Junhyeok Choi.
 
 Android (SDK version 26 and later)
 
-Requires Speaker, Microphone, and Bluetooth available.
+Requires Speaker, Microphone, and Bluetooth.
 
 ## Installation
 
 Binary file: https://drive.google.com/open?id=1EVbe35_cbNHkg8zd64kiqCLBkUvNw9x2
 
 Download apk file above or build as a typical Android application via Android Studio.
+
+## Demo
+
+![teaser](demo.png)
 
 ## build.gradle
 
